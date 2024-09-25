@@ -62,8 +62,13 @@ class Network {
 	 */
 	addArgumentData(chunks, object) {
 		if (object.constructor.name === "Array") {
-			const elementCodec = this.protocol.getCodec(object[0].constructor.name);
-			VectorCodec.encode(chunks, elementCodec, object, object[0].constructor.name === "String");
+			if (object.length > 0) {
+				const elementCodec = this.protocol.getCodec(object[0].constructor.name);
+				VectorCodec.encode(chunks, elementCodec, object, object[0].constructor.name === "String");
+			}
+			else {
+				VectorCodec.encode(chunks, null, object, false);
+			}
 		}
 		else {
 			const codec = this.protocol.getCodec(object.constructor.name);
