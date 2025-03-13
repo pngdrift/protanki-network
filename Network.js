@@ -1,3 +1,4 @@
+const { EventEmitter } = require("stream");
 const Protocol = require("./Protocol");
 const VectorCodec = require("./codec/VectorCodec");
 const net = require("net");
@@ -10,7 +11,7 @@ const net = require("net");
  * id - (int32)
  * data - (*) args
  */
-class Network {
+class Network extends EventEmitter {
 
 	static PACKET_HEADER_SIZE = 8;
 
@@ -18,10 +19,41 @@ class Network {
 	 * @param {net.Socket} socket
 	 */
 	constructor(socket) {
+		super();
 		this.socket = socket;
 		this.context = null;
 		this.protocol = new Protocol();
 		this.debug = false;
+		this.dataBuffer = Buffer.alloc(0);
+		this.socket.on("data", (data) => {
+			this.dataBuffer = Buffer.concat([this.dataBuffer, data]);
+			this.processBuffer();
+		});
+	}
+
+	/**
+	 * @returns 
+	 */
+	processBuffer() {
+		while (this.dataBuffer.byteLength >= Network.PACKET_HEADER_SIZE) {
+			const packetLength = this.dataBuffer.readInt32BE();
+			if (this.dataBuffer.byteLength < packetLength) {
+				return;
+			}
+			const payloadLength = packetLength - Network.PACKET_HEADER_SIZE;
+			if (payloadLength >= 0) {
+				if (this.context)
+					this.context.decrypt(this.dataBuffer, packetLength);
+
+				this.dataBuffer.position = 4;
+				this.emit("packetData", this.dataBuffer, packetLength);
+
+				this.dataBuffer = this.dataBuffer.subarray(
+					packetLength,
+					this.dataBuffer.length,
+				);
+			}
+		}
 	}
 
 	/**
