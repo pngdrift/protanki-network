@@ -38,13 +38,9 @@ class Network {
 			}
 
 			if (this.debug)
-				console.log("sendCommand" , packetId, args);
+				console.log("sendCommand", packetId, args);
 
 			const buffer = Buffer.concat(chunks);
-			if (buffer.byteLength > 65536 + Network.PACKET_HEADER_SIZE) {
-				console.log(`Very large packet! (ID ${packetId}) Sending canceled`, packetId);
-				return false;
-			}
 
 			if (this.context)
 				this.context.encrypt(buffer);
